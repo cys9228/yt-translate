@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유튜브 다국어 제목 번역 + 자동 등록</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg:#12141a; --panel:#1a1d26; --panel-2:#20242f; --line:#2b303c;
+    --ink:#eef1f6; --ink-dim:#9aa2b2; --ink-faint:#6b7280;
+    --red:#ff3b30; --red-soft:#ff5b52; --ok:#34d399; --warn:#fbbf24; --blue:#4285f4; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 500px at 80% -10%, rgba(255,59,48,.10), transparent 60%),var(--bg);
+    color:var(--ink);
+    font-family:"Malgun Gothic","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 80px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .logo{width:46px;height:46px;border-radius:12px;flex:0 0 auto;background:linear-gradient(135deg,var(--red),#c1271f);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(255,59,48,.35)}
+  .logo svg{width:24px;height:24px;fill:#fff}
+  header h1{font-size:20px;margin:0;letter-spacing:-.3px}
+  header p{margin:2px 0 0;font-size:13px;color:var(--ink-dim)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px}
+  .card h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  .step{width:22px;height:22px;border-radius:7px;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .step.blue{background:var(--blue)}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);cursor:pointer;font-size:14px;font-weight:600;text-align:center;transition:.15s}
+  .tab.active{background:var(--red);color:#fff;border-color:var(--red)}
+  .tab:hover:not(.active){color:var(--ink)}
+  label.fld{display:block;font-size:12px;color:var(--ink-dim);margin:0 0 6px;font-weight:600}
+  input[type=text],input[type=password],select{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:15px;outline:none;transition:.15s}
+  textarea{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:14px;outline:none;transition:.15s;resize:vertical;font-family:inherit;line-height:1.5}
+  textarea:focus{border-color:var(--red-soft);background:#242835}
+  textarea::placeholder{color:var(--ink-faint)}
+  input:focus,select:focus{border-color:var(--red-soft);background:#242835}
+  input::placeholder{color:var(--ink-faint)}
+  select{cursor:pointer}
+  .grid2{display:grid;grid-template-columns:1fr 200px;gap:12px;align-items:end}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .btn{width:100%;padding:15px;border:none;border-radius:11px;cursor:pointer;font-size:16px;font-weight:700;color:#fff;margin-top:14px;background:linear-gradient(135deg,var(--red),#d62a20);box-shadow:0 6px 18px rgba(255,59,48,.3);transition:.15s}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;filter:none}
+  .btn.blue{background:linear-gradient(135deg,var(--blue),#2b6cd4);box-shadow:0 6px 18px rgba(66,133,244,.3)}
+  .btn.green{background:linear-gradient(135deg,var(--ok),#059669);box-shadow:0 6px 18px rgba(52,211,153,.3)}
+  .hint{font-size:12px;color:var(--ink-faint);margin-top:6px;line-height:1.5}
+  .advanced{margin-top:12px;font-size:13px;color:var(--ink-dim);cursor:pointer;user-select:none}
+  .advanced-body{margin-top:10px;display:none}
+  .advanced-body.open{display:block}
+  #progress{display:none;margin-top:6px}
+  .bar{height:8px;background:var(--panel-2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--red-soft));transition:width .2s}
+  .bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-dim);margin:8px 2px 0}
+  .origin{display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+  .origin .k{font-size:12px;color:var(--ink-dim);margin-bottom:4px}
+  .origin .v{font-size:18px;font-weight:700;line-height:1.4;word-break:break-word}
+  .toolbar{display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .toolbar input[type=text]{flex:1;min-width:160px;padding:10px 12px;font-size:13px}
+  .mini{padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:.15s}
+  .mini:hover{border-color:var(--red-soft);color:#fff}
+  #results{display:grid;gap:8px}
+  .item{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  @media(max-width:560px){.item{grid-template-columns:1fr auto}.item .lang{grid-column:1/-1;margin-bottom:-4px}}
+  .lang{display:flex;align-items:center;gap:9px;min-width:0}
+  .autochk{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;cursor:pointer;user-select:none}
+  .autochk input{width:18px;height:18px;margin:0;accent-color:#ff3b30;flex:0 0 auto}
+  .flag{font-size:19px;flex:0 0 auto;line-height:1}
+  .lang .names{min-width:0}
+  .lang .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lang .nt{font-size:11px;color:var(--ink-faint)}
+  .tr{font-size:15px;line-height:1.4;word-break:break-word}
+  .tr.pending{color:var(--ink-faint)}
+  .tr.err{color:var(--warn);font-size:13px}
+  .trdesc{font-size:12.5px;line-height:1.5;color:var(--ink-dim);margin-top:5px;word-break:break-word;white-space:pre-wrap}
+  .copy{background:transparent;border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s}
+  .copy:hover{border-color:var(--red-soft);color:#fff}
+  .copy.done{border-color:var(--ok);color:var(--ok)}
+  #status{font-size:13px;color:var(--ink-dim);margin:14px 2px;text-align:center;display:none}
+  /* upload card */
+  .localwarn{display:none;background:rgba(255,59,48,.10);border:1px solid rgba(255,59,48,.4);border-radius:10px;padding:12px 14px;font-size:13px;color:#ff8a80;line-height:1.6;margin-bottom:14px}
+  .conn-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pill{font-size:12px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);color:var(--ink-dim)}
+  .pill.on{border-color:var(--ok);color:var(--ok)}
+  #uploadLog{margin-top:12px;font-size:13px;line-height:1.7;color:var(--ink-dim);white-space:pre-wrap;word-break:break-word}
+  footer{text-align:center;color:var(--ink-faint);font-size:12px;margin-top:36px;line-height:1.7}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#000;color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:99;border:1px solid var(--line);max-width:90%}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .warnbox{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:11px 13px;font-size:12px;color:#fcd34d;line-height:1.6;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M23 12s0-3.9-.5-5.8a3 3 0 0 0-2.1-2.1C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.4.5A3 3 0 0 0 1.5 6.2C1 8.1 1 12 1 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 8.4.5 8.4.5s6.5 0 8.4-.5a3 3 0 0 0 2.1-2.1C23 15.9 23 12 23 12ZM9.8 15.5v-7l6 3.5-6 3.5Z"/></svg></div>
+    <div><h1>유튜브 다국어 제목 번역 + 자동 등록</h1><p>제목을 100개국 언어로 번역하고, 끝나면 내 채널 영상에 자동 등록</p></div>
+  </header>
+
+  <!-- STEP 1: 번역 -->
+  <div class="card">
+    <h2><span class="step">1</span> 제목 번역하기</h2>
+    <div class="tabs">
+      <div class="tab active" id="tabUrl" onclick="setMode('url')">유튜브 주소로</div>
+      <div class="tab" id="tabText" onclick="setMode('text')">제목 직접 입력</div>
+    </div>
+    <div id="paneUrl">
+      <label class="fld">유튜브 영상 주소 (URL)</label>
+      <input type="text" id="urlInput" placeholder="https://youtu.be/... (내 채널 영상)">
+      <div class="hint">내 채널 영상 주소를 넣어야 자동 등록까지 됩니다. 공개·일부 공개·비공개·예약 영상 모두 가능합니다.</div>
+    </div>
+    <div id="paneText" style="display:none">
+      <label class="fld">번역할 제목</label>
+      <input type="text" id="textInput" placeholder="예: 철근 관통 방지캡으로 현장 사고 예방하기">
+      <div class="hint">직접 입력 모드는 번역만 됩니다. (영상 지정이 없어 자동 등록 불가)</div>
+    </div>
+    <div style="margin-top:14px">
+      <label class="fld">설명글 (선택)</label>
+      <textarea id="descInput" rows="4" placeholder="영상 설명글을 넣으면 제목과 함께 100개국 언어로 번역됩니다. (비워두면 제목만 번역)"></textarea>
+      <div class="hint">유튜브 주소 모드에서 자동 등록 시, 이 설명글 번역이 각 언어 설명으로 함께 등록됩니다. 비워두면 원래 설명이 유지됩니다.</div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div>
+        <label class="fld">원문 언어</label>
+        <select id="srcLang">
+          <option value="ko" selected>한국어</option>
+          <option value="en">영어 English</option>
+          <option value="ja">일본어 日本語</option>
+          <option value="zh-CN">중국어(간체) 简体</option>
+          <option value="es">스페인어 Español</option>
+        </select>
+      </div>
+      <div>
+        <label class="fld">번역 개수</label>
+        <select id="count">
+          <option value="100" selected>100개국 (전체)</option>
+          <option value="70">70개국</option>
+          <option value="50">50개국 (기존 기본)</option>
+          <option value="30">주요 30개국</option>
+          <option value="15">핵심 15개국</option>
+        </select>
+      </div>
+    </div>
+    <label class="autochk"><input type="checkbox" id="autoUpload" checked onchange="saveAuto()"> 번역이 끝나면 내 유튜브 채널에 바로 자동 등록</label>
+    <div class="hint">유튜브 주소 모드 + 채널 연동(2단계 Client ID 입력)이 되어 있어야 작동합니다. 연동이 안 돼 있으면 번역 시작 시 구글 로그인 창이 뜹니다. 공개·일부 공개·비공개·예약 영상 모두 등록됩니다.</div>
+    <button class="btn" id="goBtn" onclick="start()">번역 시작</button>
+    <div class="advanced" onclick="toggleAdv()">▸ 고급 설정 (번역 한도 늘리기)</div>
+    <div class="advanced-body" id="advBody">
+      <label class="fld">이메일 (선택)</label>
+      <input type="text" id="email" placeholder="your@email.com">
+      <div class="hint">무료 번역 엔진은 하루 사용량 제한이 있습니다. 이메일을 넣으면 한도가 늘어납니다. <b>100개국 + 설명글</b>은 사용량이 많으니 이메일 입력을 권장합니다.</div>
+    </div>
+    <div id="progress">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="bar-label"><span id="barText">준비 중…</span><span id="barPct">0%</span></div>
+    </div>
+  </div>
+
+  <!-- ORIGIN -->
+  <div class="origin" id="origin">
+    <div class="k">원문 제목</div>
+    <div class="v" id="originText"></div>
+    <div class="trdesc" id="originDesc" style="display:none;margin-top:8px"></div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar" id="toolbar">
+    <input type="text" id="filter" placeholder="언어 검색 (예: 영어, 일본, spanish)" oninput="applyFilter()">
+    <button class="mini" onclick="copyAll()">전체 복사</button>
+    <button class="mini" onclick="downloadCSV()">엑셀(CSV) 저장</button>
+  </div>
+  <div id="results"></div>
+  <div id="status"></div>
+
+  <!-- STEP 2 & 3: 채널 연동 + 자동 등록 -->
+  <div class="card" id="uploadCard">
+    <div class="localwarn" id="localWarn">🚫 지금 <b>로컬 파일</b>로 열려 있어 채널 연동(구글 로그인)이 작동하지 않습니다.<br>이 파일을 <b>GitHub Pages</b>에 올린 뒤 그 인터넷 주소(https://cys9228.github.io/...)로 열어주세요. 번역 기능은 여기서도 그대로 됩니다.</div>
+    <h2><span class="step blue">2</span> 내 유튜브 채널 연동</h2>
+    <label class="fld">구글 Client ID (한 번만 입력하면 저장됩니다)</label>
+    <input type="text" id="clientId" placeholder="000000-xxxx.apps.googleusercontent.com">
+    <div class="conn-row" style="margin-top:12px">
+      <button class="btn blue" style="margin-top:0;width:auto;padding:12px 20px" id="connectBtn" onclick="connectChannel()">YouTube 채널 연동하기</button>
+      <span class="pill" id="connPill">연동 안 됨</span>
+    </div>
+    <div class="hint">처음이면 발급 방법은 아래 파란 박스를 참고하세요. Client ID는 이 브라우저에만 저장되고 외부로 나가지 않습니다.</div>
+
+    <h2 style="margin-top:24px"><span class="step">3</span> 100개국 제목 자동 등록</h2>
+    <button class="btn green" id="uploadBtn" onclick="uploadToYouTube()" disabled>이 영상에 다국어 제목 등록하기</button>
+    <div id="uploadLog"></div>
+    <div class="warnbox">
+      ⚠️ 이 자동 등록 기능은 <b>GitHub Pages 주소에서 열었을 때만</b> 작동합니다. (구글 로그인 보안 규칙)<br>
+      로컬 파일(내 PC에서 바로 열기)로는 번역까지만 됩니다.
+    </div>
+  </div>
+
+  <footer>무료 번역 엔진(MyMemory) · YouTube Data API v3 · 현장안전365</footer>
+</div>
+<div id="toast"></div>
+
+<script>
+const LANGS = [
+  {c:"en",ko:"영어",nt:"English",f:"🇺🇸"},{c:"es",ko:"스페인어",nt:"Español",f:"🇪🇸"},
+  {c:"pt",ko:"포르투갈어",nt:"Português",f:"🇧🇷"},{c:"fr",ko:"프랑스어",nt:"Français",f:"🇫🇷"},
+  {c:"de",ko:"독일어",nt:"Deutsch",f:"🇩🇪"},{c:"it",ko:"이탈리아어",nt:"Italiano",f:"🇮🇹"},
+  {c:"ru",ko:"러시아어",nt:"Русский",f:"🇷🇺"},{c:"ja",ko:"일본어",nt:"日本語",f:"🇯🇵"},
+  {c:"zh-CN",ko:"중국어(간체)",nt:"简体中文",f:"🇨🇳",yt:"zh-Hans"},{c:"zh-TW",ko:"중국어(번체)",nt:"繁體中文",f:"🇹🇼",yt:"zh-Hant"},
+  {c:"ar",ko:"아랍어",nt:"العربية",f:"🇸🇦"},{c:"hi",ko:"힌디어",nt:"हिन्दी",f:"🇮🇳"},
+  {c:"id",ko:"인도네시아어",nt:"Indonesia",f:"🇮🇩"},{c:"vi",ko:"베트남어",nt:"Tiếng Việt",f:"🇻🇳"},
+  {c:"th",ko:"태국어",nt:"ไทย",f:"🇹🇭"},{c:"tr",ko:"터키어",nt:"Türkçe",f:"🇹🇷"},
+  {c:"pl",ko:"폴란드어",nt:"Polski",f:"🇵🇱"},{c:"nl",ko:"네덜란드어",nt:"Nederlands",f:"🇳🇱"},
+  {c:"uk",ko:"우크라이나어",nt:"Українська",f:"🇺🇦"},{c:"ro",ko:"루마니아어",nt:"Română",f:"🇷🇴"},
+  {c:"el",ko:"그리스어",nt:"Ελληνικά",f:"🇬🇷"},{c:"cs",ko:"체코어",nt:"Čeština",f:"🇨🇿"},
+  {c:"hu",ko:"헝가리어",nt:"Magyar",f:"🇭🇺"},{c:"sv",ko:"스웨덴어",nt:"Svenska",f:"🇸🇪"},
+  {c:"da",ko:"덴마크어",nt:"Dansk",f:"🇩🇰"},{c:"fi",ko:"핀란드어",nt:"Suomi",f:"🇫🇮"},
+  {c:"no",ko:"노르웨이어",nt:"Norsk",f:"🇳🇴"},{c:"he",ko:"히브리어",nt:"עברית",f:"🇮🇱",yt:"iw"},
+  {c:"fa",ko:"페르시아어",nt:"فارسی",f:"🇮🇷"},{c:"bn",ko:"벵골어",nt:"বাংলা",f:"🇧🇩"},
+  {c:"ta",ko:"타밀어",nt:"தமிழ்",f:"🇮🇳"},{c:"te",ko:"텔루구어",nt:"తెలుగు",f:"🇮🇳"},
+  {c:"ur",ko:"우르두어",nt:"اردو",f:"🇵🇰"},{c:"ms",ko:"말레이어",nt:"Melayu",f:"🇲🇾"},
+  {c:"tl",ko:"필리핀어",nt:"Filipino",f:"🇵🇭",yt:"fil"},{c:"sw",ko:"스와힐리어",nt:"Kiswahili",f:"🇰🇪"},
+  {c:"ml",ko:"말라얄람어",nt:"മലയാളം",f:"🇮🇳"},{c:"mr",ko:"마라티어",nt:"मराठी",f:"🇮🇳"},
+  {c:"pa",ko:"펀자브어",nt:"ਪੰਜਾਬੀ",f:"🇮🇳"},{c:"sr",ko:"세르비아어",nt:"Српски",f:"🇷🇸"},
+  {c:"hr",ko:"크로아티아어",nt:"Hrvatski",f:"🇭🇷"},{c:"sk",ko:"슬로바키아어",nt:"Slovenčina",f:"🇸🇰"},
+  {c:"bg",ko:"불가리아어",nt:"Български",f:"🇧🇬"},{c:"ca",ko:"카탈루냐어",nt:"Català",f:"🇪🇸"},
+  {c:"lt",ko:"리투아니아어",nt:"Lietuvių",f:"🇱🇹"},{c:"lv",ko:"라트비아어",nt:"Latviešu",f:"🇱🇻"},
+  {c:"et",ko:"에스토니아어",nt:"Eesti",f:"🇪🇪"},{c:"sl",ko:"슬로베니아어",nt:"Slovenščina",f:"🇸🇮"},
+  {c:"ne",ko:"네팔어",nt:"नेपाली",f:"🇳🇵"},{c:"kk",ko:"카자흐어",nt:"Қазақша",f:"🇰🇿"},
+  {c:"af",ko:"아프리칸스어",nt:"Afrikaans",f:"🇿🇦"},{c:"sq",ko:"알바니아어",nt:"Shqip",f:"🇦🇱"},
+  {c:"am",ko:"암하라어",nt:"አማርኛ",f:"🇪🇹"},{c:"hy",ko:"아르메니아어",nt:"Հայերեն",f:"🇦🇲"},
+  {c:"az",ko:"아제르바이잔어",nt:"Azərbaycan",f:"🇦🇿"},{c:"eu",ko:"바스크어",nt:"Euskara",f:"🇪🇸"},
+  {c:"be",ko:"벨라루스어",nt:"Беларуская",f:"🇧🇾"},{c:"bs",ko:"보스니아어",nt:"Bosanski",f:"🇧🇦"},
+  {c:"my",ko:"미얀마어",nt:"မြန်မာ",f:"🇲🇲"},{c:"km",ko:"크메르어(캄보디아)",nt:"ខ្មែរ",f:"🇰🇭"},
+  {c:"lo",ko:"라오어",nt:"ລາວ",f:"🇱🇦"},{c:"mn",ko:"몽골어",nt:"Монгол",f:"🇲🇳"},
+  {c:"uz",ko:"우즈베크어",nt:"Oʻzbek",f:"🇺🇿"},{c:"ky",ko:"키르기스어",nt:"Кыргызча",f:"🇰🇬"},
+  {c:"tg",ko:"타지크어",nt:"Тоҷикӣ",f:"🇹🇯"},{c:"ka",ko:"조지아어",nt:"ქართული",f:"🇬🇪"},
+  {c:"mk",ko:"마케도니아어",nt:"Македонски",f:"🇲🇰"},{c:"is",ko:"아이슬란드어",nt:"Íslenska",f:"🇮🇸"},
+  {c:"ga",ko:"아일랜드어",nt:"Gaeilge",f:"🇮🇪"},{c:"cy",ko:"웨일스어",nt:"Cymraeg",f:"🇬🇧"},
+  {c:"gl",ko:"갈리시아어",nt:"Galego",f:"🇪🇸"},{c:"mt",ko:"몰타어",nt:"Malti",f:"🇲🇹"},
+  {c:"lb",ko:"룩셈부르크어",nt:"Lëtzebuergesch",f:"🇱🇺"},{c:"gu",ko:"구자라트어",nt:"ગુજરાતી",f:"🇮🇳"},
+  {c:"kn",ko:"칸나다어",nt:"ಕನ್ನಡ",f:"🇮🇳"},{c:"si",ko:"싱할라어",nt:"සිංහල",f:"🇱🇰"},
+  {c:"or",ko:"오리야어",nt:"ଓଡ଼ିଆ",f:"🇮🇳"},{c:"as",ko:"아삼어",nt:"অসমীয়া",f:"🇮🇳"},
+  {c:"ps",ko:"파슈토어",nt:"پښتو",f:"🇦🇫"},{c:"ku",ko:"쿠르드어",nt:"Kurdî",f:"🇮🇶"},
+  {c:"so",ko:"소말리어",nt:"Soomaali",f:"🇸🇴"},{c:"ha",ko:"하우사어",nt:"Hausa",f:"🇳🇬"},
+  {c:"yo",ko:"요루바어",nt:"Yorùbá",f:"🇳🇬"},{c:"ig",ko:"이그보어",nt:"Igbo",f:"🇳🇬"},
+  {c:"zu",ko:"줄루어",nt:"isiZulu",f:"🇿🇦"},{c:"xh",ko:"코사어",nt:"isiXhosa",f:"🇿🇦"},
+  {c:"rw",ko:"르완다어",nt:"Kinyarwanda",f:"🇷🇼"},{c:"mg",ko:"말라가시어",nt:"Malagasy",f:"🇲🇬"},
+  {c:"ny",ko:"체와어",nt:"Chichewa",f:"🇲🇼"},{c:"sn",ko:"쇼나어",nt:"chiShona",f:"🇿🇼"},
+  {c:"st",ko:"소토어",nt:"Sesotho",f:"🇱🇸"},{c:"jv",ko:"자바어",nt:"Basa Jawa",f:"🇮🇩"},
+  {c:"su",ko:"순다어",nt:"Basa Sunda",f:"🇮🇩"},{c:"ceb",ko:"세부아노어",nt:"Cebuano",f:"🇵🇭"},
+  {c:"ht",ko:"아이티 크레올어",nt:"Kreyòl",f:"🇭🇹"},{c:"la",ko:"라틴어",nt:"Latina",f:"🇻🇦"},
+  {c:"eo",ko:"에스페란토",nt:"Esperanto",f:"🌍"},{c:"yi",ko:"이디시어",nt:"ייִדיש",f:"🇮🇱"},
+  {c:"fy",ko:"프리지아어",nt:"Frysk",f:"🇳🇱"},{c:"co",ko:"코르시카어",nt:"Corsu",f:"🇫🇷"},
+];
+/* 유튜브가 확실히 받는 언어 코드 — 등록 오류 시 이 목록만으로 자동 재시도 */
+const YT_SAFE = new Set(["en","es","pt","fr","de","it","ru","ja","zh-Hans","zh-Hant","ar","hi","id","vi","th","tr","pl","nl","uk","ro","el","cs","hu","sv","da","fi","no","iw","fa","bn","ta","te","ur","ms","fil","sw","ml","mr","pa","sr","hr","sk","bg","ca","lt","lv","et","sl","ne","kk","ko",
+ "af","sq","am","hy","az","eu","be","bs","my","km","lo","mn","uz","ky","ka","mk","is","gl","gu","kn","si","or","as","zu"]);
+function ytCode(l){ return l.yt || l.c; }
+
+let mode="url", rows=[], originTitle="", originDesc="", currentVideoId=null;
+let accessToken=null, tokenClient=null, pendingAutoUpload=false, loginPending=false, tokenWaiters=[];
+function resolveToken(t){ loginPending=false; const w=tokenWaiters; tokenWaiters=[]; w.forEach(f=>f(t)); }
+function waitForToken(ms){ if(accessToken) return Promise.resolve(accessToken); if(!loginPending) return Promise.resolve(null);
+  return new Promise(res=>{ tokenWaiters.push(res); setTimeout(()=>res(accessToken||null), ms||180000); }); }
+function isAuto(){ return document.getElementById("autoUpload").checked; }
+function saveAuto(){ try{ localStorage.setItem("yt_auto_upload", isAuto()?"1":"0"); }catch(e){} }
+function loadAuto(){ try{ const v=localStorage.getItem("yt_auto_upload"); if(v!==null) document.getElementById("autoUpload").checked=(v==="1"); }catch(e){} }
+
+/* ---------- UI helpers ---------- */
+function setMode(m){mode=m;document.getElementById("tabUrl").classList.toggle("active",m==="url");document.getElementById("tabText").classList.toggle("active",m==="text");document.getElementById("paneUrl").style.display=m==="url"?"block":"none";document.getElementById("paneText").style.display=m==="text"?"block":"none";}
+function toggleAdv(){document.getElementById("advBody").classList.toggle("open");}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2400);}
+function setProgress(done,total,label){const pct=total?Math.round(done/total*100):0;document.getElementById("barFill").style.width=pct+"%";document.getElementById("barPct").textContent=pct+"%";document.getElementById("barText").textContent=label||(done+" / "+total+" 완료");}
+function log(msg){const el=document.getElementById("uploadLog");el.textContent+=(el.textContent?"\n":"")+msg;}
+
+/* Client ID 저장/복원 (window.name 사용: file/https 공통 동작) */
+function saveClientId(v){ try{ localStorage.setItem("yt_client_id", v); }catch(e){} }
+function loadClientId(){ try{ return localStorage.getItem("yt_client_id")||""; }catch(e){ return ""; } }
+
+/* ---------- YouTube ID 추출 & 제목 가져오기 ---------- */
+function extractVideoId(url){url=url.trim();const patterns=[/(?:youtube\.com\/watch\?[^ ]*v=)([\w-]{11})/,/(?:youtu\.be\/)([\w-]{11})/,/(?:youtube\.com\/shorts\/)([\w-]{11})/,/(?:youtube\.com\/embed\/)([\w-]{11})/,/(?:youtube\.com\/live\/)([\w-]{11})/];for(const p of patterns){const m=url.match(p);if(m)return m[1];}if(/^[\w-]{11}$/.test(url))return url;return null;}
+/* 공개·일부공개·비공개·예약 영상 모두: 공개 정보로 먼저 시도 → 실패 시 내 채널 권한(API)으로 조회 */
+async function fetchTitleAny(videoId){
+  try{ return await fetchTitle(videoId); }catch(e){}
+  const tok = await waitForToken();
+  if(!tok) throw new Error("비공개·예약 영상은 채널 연동이 필요합니다. 2단계에서 연동한 뒤 다시 번역 시작을 누르세요.");
+  const r=await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id="+videoId,{headers:{Authorization:"Bearer "+tok}});
+  const d=await r.json();
+  if(d.error) throw new Error(d.error.message||"영상 조회 실패");
+  if(!d.items||!d.items.length) throw new Error("영상을 찾을 수 없습니다. 내 채널의 영상인지 확인하세요.");
+  const st=d.items[0].status||{};
+  const label = st.publishAt ? "예약 공개" : ({public:"공개",unlisted:"일부 공개",private:"비공개"}[st.privacyStatus]||st.privacyStatus||"");
+  if(label) toast(label+" 영상 확인 — 제목을 불러왔습니다");
+  return d.items[0].snippet.title;
+}
+async function fetchTitle(videoId){const oembed="https://www.youtube.com/oembed?url="+encodeURIComponent("https://www.youtube.com/watch?v="+videoId)+"&format=json";const res=await fetch(oembed);if(!res.ok)throw new Error("영상 정보를 불러올 수 없습니다 (비공개·삭제 또는 잘못된 주소).");const data=await res.json();return data.title;}
+
+/* ---------- 번역 ---------- */
+async function translateOne(text,src,target,email){let url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair="+encodeURIComponent(src+"|"+target);if(email)url+="&de="+encodeURIComponent(email);const res=await fetch(url);if(!res.ok)throw new Error("HTTP "+res.status);const data=await res.json();const t=data.responseData&&data.responseData.translatedText;if(!t)throw new Error("no result");if(/MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(t))throw new Error(t);return t;}
+async function runPool(items,worker,concurrency){let i=0,done=0;const total=items.length;async function next(){while(i<items.length){const idx=i++;await worker(items[idx],idx);done++;setProgress(done,total);}}const runners=[];for(let k=0;k<Math.min(concurrency,total);k++)runners.push(next());await Promise.all(runners);}
+
+async function start(){
+  const btn=document.getElementById("goBtn"),src=document.getElementById("srcLang").value,email=document.getElementById("email").value.trim(),n=parseInt(document.getElementById("count").value,10);
+  const desc=document.getElementById("descInput").value.trim();
+  pendingAutoUpload=false;
+  if(mode==="url" && isAuto() && !accessToken && !loginPending){
+    if(location.protocol==="file:"){ toast("로컬 파일에서는 자동 등록이 안 됩니다 (번역만 진행)"); }
+    else if(!document.getElementById("clientId").value.trim()){ toast("자동 등록하려면 2단계 Client ID를 먼저 입력하세요 (번역만 진행)"); }
+    else { connectChannel(); } // 클릭 직후 로그인 창을 띄워야 팝업 차단을 피함
+  }
+  let title=""; currentVideoId=null;
+  try{
+    if(mode==="url"){const url=document.getElementById("urlInput").value;if(!url.trim()){toast("유튜브 주소를 입력해 주세요");return;}const vid=extractVideoId(url);if(!vid){toast("올바른 유튜브 주소가 아닙니다");return;}currentVideoId=vid;btn.disabled=true;btn.textContent="영상 제목 불러오는 중…";title=await fetchTitleAny(vid);}
+    else{title=document.getElementById("textInput").value.trim();if(!title){toast("번역할 제목을 입력해 주세요");return;}}
+  }catch(e){btn.disabled=false;btn.textContent="번역 시작";toast(e.message||"제목을 가져오지 못했습니다");return;}
+  originTitle=title; originDesc=desc;
+  document.getElementById("origin").style.display="block";
+  document.getElementById("originText").textContent=title;
+  document.getElementById("originDesc").textContent=desc||"";
+  document.getElementById("originDesc").style.display=desc?"block":"none";
+  const targets=LANGS.filter(l=>l.c!==src).slice(0,n),results=document.getElementById("results");results.innerHTML="";rows=[];
+  for(const lang of targets){
+    const item=document.createElement("div");item.className="item";
+    item.innerHTML='<div class="lang"><span class="flag">'+lang.f+'</span><div class="names"><div class="nm">'+lang.ko+'</div><div class="nt">'+lang.nt+'</div></div></div>'
+      +'<div><div class="tr pending">번역 대기…</div>'+(desc?'<div class="trdesc"></div>':'')+'</div>'
+      +'<button class="copy">복사</button>';
+    results.appendChild(item);
+    const trEl=item.querySelector(".tr"),descEl=item.querySelector(".trdesc"),copyEl=item.querySelector(".copy");
+    const row={lang,text:"",descText:"",el:item,trEl,descEl,copyEl};
+    copyEl.onclick=()=>{if(!row.text)return;const clip=row.descText?(row.text+"\n\n"+row.descText):row.text;copyText(clip);copyEl.textContent="완료";copyEl.classList.add("done");setTimeout(()=>{copyEl.textContent="복사";copyEl.classList.remove("done");},1200);};
+    rows.push(row);
+  }
+  document.getElementById("progress").style.display="block";document.getElementById("toolbar").style.display="flex";document.getElementById("status").style.display="none";setProgress(0,rows.length,"번역 중…");btn.textContent="번역 중…";
+  let fail=0;
+  await runPool(rows,async(row)=>{
+    // 제목 번역
+    let ok=false;
+    for(let attempt=0;attempt<2;attempt++){
+      try{ const t=await translateOne(title,src,row.lang.c,email); row.text=t; row.trEl.textContent=t; row.trEl.className="tr"; ok=true; break; }
+      catch(e){ if(attempt===1){ fail++; row.trEl.textContent="제목 번역 실패 (잠시 후 다시 시도)"; row.trEl.className="tr err"; } else { await new Promise(r=>setTimeout(r,600)); } }
+    }
+    // 설명 번역 (있을 때만)
+    if(desc && row.descEl){
+      row.descEl.textContent="설명 번역 중…";
+      for(let attempt=0;attempt<2;attempt++){
+        try{ const d=await translateOne(desc,src,row.lang.c,email); row.descText=d; row.descEl.textContent=d; break; }
+        catch(e){ if(attempt===1){ row.descEl.textContent="(설명 번역 실패)"; } else { await new Promise(r=>setTimeout(r,600)); } }
+      }
+    }
+  },3);
+  btn.disabled=false;btn.textContent="다시 번역";const st=document.getElementById("status");st.style.display="block";
+  if(fail===0){setProgress(rows.length,rows.length,"완료!");st.textContent="✅ "+rows.length+"개국 언어 번역 완료"+(desc?" (제목+설명)":"");}
+  else{st.textContent="⚠️ "+(rows.length-fail)+"개 완료 · "+fail+"개 실패 — 잠시 후 다시 시도하거나 이메일을 넣어보세요";}
+  document.getElementById("uploadBtn").disabled = !(accessToken && currentVideoId && rows.some(r=>r.text));
+  if(mode==="url" && isAuto() && currentVideoId && rows.some(r=>r.text)){
+    document.getElementById("uploadCard").scrollIntoView({behavior:"smooth",block:"start"});
+    if(accessToken){ uploadToYouTube(); }
+    else if(location.protocol!=="file:"){ pendingAutoUpload=true; document.getElementById("uploadLog").textContent="⏳ 번역 완료 — 채널 연동이 끝나면 자동으로 등록됩니다. (구글 로그인 창을 확인하세요)"; }
+  }
+  if(mode!=="url"){ document.getElementById("uploadLog").textContent="ℹ️ 직접 입력 모드는 등록 대상 영상이 없어 자동 등록이 불가합니다. '유튜브 주소로' 모드를 사용하세요."; }
+}
+
+/* ---------- 복사 / 필터 / CSV ---------- */
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);}else{const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();}}
+function copyAll(){const lines=rows.filter(r=>r.text).map(r=>{let s=r.lang.f+" "+r.lang.ko+" ("+r.lang.nt+")\n"+r.text;if(r.descText)s+="\n"+r.descText;return s;});if(!lines.length){toast("복사할 번역이 없습니다");return;}copyText(lines.join("\n\n"));toast("전체 번역을 복사했습니다");}
+function applyFilter(){const q=document.getElementById("filter").value.trim().toLowerCase();rows.forEach(r=>{const hay=(r.lang.ko+" "+r.lang.nt+" "+r.lang.c).toLowerCase();r.el.style.display=hay.includes(q)?"":"none";});}
+function downloadCSV(){const done=rows.filter(r=>r.text);if(!done.length){toast("저장할 번역이 없습니다");return;}let csv="\uFEFF언어,원어명,코드,제목,설명\n";csv+='"원문(원본)","","","'+(originTitle||"").replace(/"/g,'""')+'","'+(originDesc||"").replace(/"/g,'""')+'"\n';done.forEach(r=>{csv+='"'+r.lang.ko+'","'+r.lang.nt+'","'+r.lang.c+'","'+r.text.replace(/"/g,'""')+'","'+(r.descText||"").replace(/"/g,'""')+'"\n';});const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="유튜브_다국어제목.csv";a.click();URL.revokeObjectURL(a.href);toast("CSV 저장 완료 (엑셀에서 열기)");}
+
+/* ---------- 유튜브 채널 연동 (OAuth) ---------- */
+function connectChannel(){
+  const cid=document.getElementById("clientId").value.trim();
+  if(!cid){ toast("먼저 Client ID를 입력해 주세요"); return; }
+  saveClientId(cid);
+  if(typeof google==="undefined" || !google.accounts){ toast("구글 로그인 모듈 로딩 중입니다. 잠시 후 다시 눌러주세요."); return; }
+  try{
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: "https://www.googleapis.com/auth/youtube.force-ssl",
+      error_callback: ()=>{ resolveToken(null); },
+      callback: (resp)=>{
+        if(resp && resp.access_token){
+          accessToken = resp.access_token;
+          resolveToken(accessToken);
+          document.getElementById("connPill").textContent="연동 완료 ✓";
+          document.getElementById("connPill").classList.add("on");
+          document.getElementById("uploadBtn").disabled = !(currentVideoId && rows.some(r=>r.text));
+          toast("채널 연동 완료!");
+          if(pendingAutoUpload && currentVideoId && rows.some(r=>r.text)){ pendingAutoUpload=false; uploadToYouTube(); }
+        }else{ resolveToken(null); toast("연동에 실패했습니다"); }
+      }
+    });
+    loginPending=true;
+    tokenClient.requestAccessToken();
+  }catch(e){ resolveToken(null); toast("연동 오류: "+(e.message||e)); }
+}
+
+/* ---------- 다국어 제목 자동 등록 ---------- */
+async function uploadToYouTube(){
+  if(!accessToken){ toast("먼저 채널 연동을 해주세요"); return; }
+  if(!currentVideoId){ toast("유튜브 주소 모드에서 번역해야 등록됩니다"); return; }
+  const done=rows.filter(r=>r.text);
+  if(!done.length){ toast("등록할 번역이 없습니다"); return; }
+  const btn=document.getElementById("uploadBtn");
+  btn.disabled=true; btn.textContent="등록 중…";
+  document.getElementById("uploadLog").textContent="";
+  const src=document.getElementById("srcLang").value;
+  try{
+    log("① 영상 정보 확인 중…");
+    const g=await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,localizations&id="+currentVideoId,{headers:{Authorization:"Bearer "+accessToken}});
+    const gd=await g.json();
+    if(gd.error){ throw new Error(gd.error.message||"영상 조회 실패"); }
+    if(!gd.items||!gd.items.length){ throw new Error("영상을 찾을 수 없습니다. 내 채널의 영상인지 확인하세요."); }
+    const snip=gd.items[0].snippet;
+    const loc=Object.assign({}, gd.items[0].localizations||{});
+    done.forEach(r=>{
+      const code=ytCode(r.lang);
+      const prev=loc[code]||{};
+      loc[code]={ title:r.text, description: (r.descText || prev.description || snip.description || " ") };
+    });
+    log("② "+done.length+"개국 제목 등록 요청 중…");
+    const body={
+      id: currentVideoId,
+      snippet:{ title:snip.title, description:snip.description, categoryId:snip.categoryId, defaultLanguage:src, tags:snip.tags },
+      localizations: loc
+    };
+    const putIt=async(b)=>{const u=await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,localizations",{method:"PUT",headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},body:JSON.stringify(b)});return await u.json();};
+    let ud=await putIt(body), count=done.length;
+    if(ud.error && !/quota/i.test(ud.error.message||"")){
+      // 유튜브가 일부 언어 코드를 거부한 경우 → 안전 목록만 남기고 재시도
+      const prevKeys=new Set(Object.keys(gd.items[0].localizations||{}));
+      const safeLoc={}, skipped=[];
+      Object.keys(loc).forEach(k=>{ if(YT_SAFE.has(k)||prevKeys.has(k)) safeLoc[k]=loc[k]; else skipped.push(k); });
+      if(skipped.length){
+        log("⚠️ 유튜브가 일부 언어를 거부해 제외 후 재시도: "+skipped.join(", "));
+        body.localizations=safeLoc;
+        ud=await putIt(body);
+        count=done.filter(r=>safeLoc[ytCode(r.lang)]).length;
+      }
+    }
+    if(ud.error){ throw new Error(ud.error.message||"등록 실패"); }
+    log("✅ 완료! "+count+"개국 다국어 제목이 등록되었습니다.");
+    log("확인: YouTube 스튜디오 → 해당 영상 → 세부정보 → '번역' 탭");
+    toast("다국어 제목 등록 완료!");
+  }catch(e){
+    log("❌ 오류: "+(e.message||e));
+    if(/quota/i.test(e.message||"")) log("→ 오늘 API 사용량 한도 초과일 수 있습니다. 내일 다시 시도하세요.");
+    toast("등록 실패 (아래 로그 확인)");
+  }
+  btn.disabled=false; btn.textContent="이 영상에 다국어 제목 등록하기";
+}
+
+/* 시작 시 저장된 Client ID 복원 + 로컬 파일 경고 */
+window.addEventListener("load",()=>{
+  const c=loadClientId(); if(c) document.getElementById("clientId").value=c;
+  loadAuto();
+  if(location.protocol==="file:"){
+    document.getElementById("localWarn").style.display="block";
+    document.getElementById("connectBtn").disabled=true;
+  }
+});
+document.getElementById("urlInput").addEventListener("keydown",e=>{if(e.key==="Enter")start();});
+document.getElementById("textInput").addEventListener("keydown",e=>{if(e.key==="Enter")start();});
+</script>
+</body>
+</html>
